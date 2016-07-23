@@ -1,9 +1,14 @@
+// https://www.arduino.cc/en/Reference/LiquidCrystal
 #include <LiquidCrystal.h>
 
+// http://playground.arduino.cc/Main/DS1302RTC
 #include <DS1302RTC.h>
-#include <Time.h>
-#include <TimerOne.h>
 
+// http://playground.arduino.cc/Code/Time
+#include <Time.h>
+
+// http://playground.arduino.cc/Code/Timer1
+#include <TimerOne.h>
 
 // Setup RTC pins: CE, IO, CLK
 DS1302RTC RTC(11, 10, 9);
