@@ -2,6 +2,8 @@
 
 #include <DS1302RTC.h>
 #include <Time.h>
+#include <TimerOne.h>
+
 
 // Setup RTC pins: CE, IO, CLK
 DS1302RTC RTC(11, 10, 9);
@@ -22,6 +24,10 @@ void setup() {
   // set up the LCD's number of columns and rows:
   lcd.begin(16, 4);
   lcd.clear();
+
+  //setSyncProvider() causes the Time library to synchronize with the
+  //external RTC by calling RTC.get() every five minutes by default.
+  setSyncProvider(RTC.get);
   
   // Print a message to the LCD.
   // set the cursor to column 0, line 0
@@ -29,6 +35,9 @@ void setup() {
   lcd.setCursor(0, 0);
   if (RTC.haltRTC()) {
     lcd.print("Please set time!");
+  } else {
+    Timer1.initialize(1000000);
+    Timer1.attachInterrupt(printDateTime); // update time & date every 0.5 seconds
   }
   lcd.setCursor(0, 1);
   lcd.print("hello, world2!");
@@ -36,29 +45,10 @@ void setup() {
   lcd.print("hello, world3!");
   lcd.setCursor(0, 3);
   lcd.print("hello, world4!");
-
-  //setSyncProvider() causes the Time library to synchronize with the
-  //external RTC by calling RTC.get() every five minutes by default.
-  setSyncProvider(RTC.get);
 }
 
 void loop() {
   // put your main code here, to run repeatedly:
-  lcd.setCursor(0, 0);
-  lcd.print("Date: ");
-  printTwoDigits(day());
-  lcd.print("/");
-  printTwoDigits(month());
-  lcd.print("/");
-  lcd.print(year());
-
-  lcd.setCursor(0, 1);
-  lcd.print("Time: ");
-  printTwoDigits(hour());
-  lcd.print(":");
-  printTwoDigits(minute());
-  lcd.print(":");
-  printTwoDigits(second());
   
   digitalWrite(SOLENOID_PIN, LOW);
   lcd.setCursor(0, 2);
@@ -100,3 +90,22 @@ void printTwoDigits(int number) {
   }
   lcd.print(number);
 }
+
+void printDateTime() {
+  lcd.setCursor(0, 0);
+  lcd.print("Date: ");
+  printTwoDigits(day());
+  lcd.print("/");
+  printTwoDigits(month());
+  lcd.print("/");
+  lcd.print(year());
+
+  lcd.setCursor(0, 1);
+  lcd.print("Time: ");
+  printTwoDigits(hour());
+  lcd.print(":");
+  printTwoDigits(minute());
+  lcd.print(":");
+  printTwoDigits(second());
+}
+
