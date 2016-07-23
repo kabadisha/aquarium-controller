@@ -10,9 +10,8 @@ DS1302RTC RTC(11, 10, 9);
 //                RS  CS D0 D1 D2 D3
 LiquidCrystal lcd(6, 7, 0, 1, 2, 3);
 
-
-int LIGHTS_PWM_PIN = 5;
-int SOLENOID_PIN = 8;
+const int LIGHTS_PWM_PIN = 5;
+const int SOLENOID_PIN = 8;
 
 void setup() {
   // put your setup code here, to run once:
