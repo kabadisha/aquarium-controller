@@ -13,7 +13,7 @@ DS1302RTC RTC(11, 10, 9);
  */
 
 // Initialize the display with the numbers of the interface pins:
-//                RS CS D0 D1 D2 D3
+//                RS EN D0 D1 D2 D3
 LiquidCrystal lcd(6, 7, 0, 1, 2, 3);
 
 const int LIGHTS_PWM_PIN = 5;
