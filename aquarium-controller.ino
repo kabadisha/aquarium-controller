@@ -22,7 +22,7 @@ const int SOLENOID_PIN = 8;
 const int CO2_ON_HOUR = 7;
 const int CO2_ON_MINUTE = 0;
 const int CO2_OFF_HOUR = 21;
-const int CO2_OFF_MINUTE = 30;
+const int CO2_OFF_MINUTE = 0;
 
 String CO2_STATE = "OFF";
 
