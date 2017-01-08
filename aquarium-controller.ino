@@ -1,4 +1,5 @@
 #include <LiquidCrystal.h> // https://www.arduino.cc/en/Reference/LiquidCrystal
+#include <Streaming.h>        //http://arduiniana.org/libraries/streaming/
 #include <DS1302RTC.h>     // http://playground.arduino.cc/Main/DS1302RTC
 #include <TimeLib.h>       // http://playground.arduino.cc/Code/Time
 
@@ -6,15 +7,29 @@
 //            CE, IO, CLK
 DS1302RTC RTC(11, 10, 9);
 
-/*
- * If you want to set the time on the RTC you need to upload a sketch that allows you to set it via serial.
- * I couldn't include the code to do so here because the serial pins conflict with the LCD
- * Check out the 'SetSerial' example sketch included with the DS1302RTC library. That does what you need.
- */
+/*----------------------------------------------------------------------*
+ * Set the date and time by entering the following on the Arduino       *
+ * serial monitor:                                                      *
+ *    year,month,day,hour,minute,second,                                *
+ *                                                                      *
+ * Where                                                                *
+ *    year can be two or four digits,                                   *
+ *    month is 1-12,                                                    *
+ *    day is 1-31,                                                      *
+ *    hour is 0-23, and                                                 *
+ *    minute and second are 0-59.                                       *
+ *                                                                      *
+ * Entering the final comma delimiter (after "second") will avoid a     *
+ * one-second timeout and will allow the RTC to be set more accurately. *
+ *                                                                      *
+ * No validity checking is done, invalid values or incomplete syntax    *
+ * in the input will result in an incorrect RTC setting.                *
+ *                                                                      *
+ *----------------------------------------------------------------------*/
 
 // Initialize the display with the numbers of the interface pins:
-//                RS EN D0 D1 D2 D3
-LiquidCrystal lcd(6, 7, 0, 1, 2, 3);
+//                RS EN D4 D5 D6 D7
+LiquidCrystal lcd(6, 12, 7, 2, 3, 4);
 
 const int LIGHTS_PWM_PIN = 5;
 const int SOLENOID_PIN = 8;
@@ -45,9 +60,15 @@ bool INITIALISED_SUCCESS = false;
 void setup() {
   // put your setup code here, to run once:
 
+  Serial.begin(115200);
+
   // setSyncProvider() causes the Time library to synchronize with the
   // external RTC by calling RTC.get() every five minutes by default.
   setSyncProvider(RTC.get);
+
+  Serial << F("RTC module activated");
+  Serial << endl;
+  delay(500);
   
   pinMode(LIGHTS_PWM_PIN, OUTPUT);
   digitalWrite(LIGHTS_PWM_PIN, LOW);
@@ -72,11 +93,93 @@ void setup() {
 
 void loop() {
   // put your main code here, to run repeatedly:
+  setTime();
+  
   if (INITIALISED_SUCCESS) {
     updateDisplay();
     handleCo2();
     handleLights();
   }
+}
+
+void setTime() {
+  static time_t tLast;
+  time_t t;
+  tmElements_t tm;
+
+  //check for input to set the RTC, minimum length is 12, i.e. yy,m,d,h,m,s
+  if (Serial.available() >= 12) {
+      //note that the tmElements_t Year member is an offset from 1970,
+      //but the RTC wants the last two digits of the calendar year.
+      //use the convenience macros from Time.h to do the conversions.
+      int y = Serial.parseInt();
+      if (y >= 100 && y < 1000) {
+          Serial << F("Error: Year must be two digits or four digits!") << endl;
+      } else {
+          if (y >= 1000)
+              tm.Year = CalendarYrToTm(y);
+          else    //(y < 100)
+              tm.Year = y2kYearToTm(y);
+          tm.Month = Serial.parseInt();
+          tm.Day = Serial.parseInt();
+          tm.Hour = Serial.parseInt();
+          tm.Minute = Serial.parseInt();
+          tm.Second = Serial.parseInt();
+          t = makeTime(tm);
+          //use the time_t value to ensure correct weekday is set
+          if(RTC.set(t) == 0) { // Success
+            setTime(t);
+            Serial << F("RTC set to: ");
+            printDateTime(t);
+            Serial << endl;
+          } else {
+            Serial << F("RTC set failed!") << endl;
+          }
+          //dump any extraneous input
+          while (Serial.available() > 0) Serial.read();
+      }
+  }
+  
+  t = now();
+  if (t != tLast) {
+      tLast = t;
+      printDateTime(t);
+      Serial << endl;
+  }
+}
+
+//print date and time to Serial
+void printDateTime(time_t t)
+{
+    printDate(t);
+    Serial << ' ';
+    printTime(t);
+}
+
+//print time to Serial
+void printTime(time_t t)
+{
+    printI00(hour(t), ':');
+    printI00(minute(t), ':');
+    printI00(second(t), ' ');
+}
+
+//print date to Serial
+void printDate(time_t t)
+{
+    printI00(day(t), 0);
+    Serial << monthShortStr(month(t)) << _DEC(year(t));
+}
+
+//Print an integer in "00" format (with leading zero),
+//followed by a delimiter character to Serial.
+//Input value assumed to be between 0 and 99.
+void printI00(int val, char delim)
+{
+    if (val < 10) Serial << '0';
+    Serial << _DEC(val);
+    if (delim > 0) Serial << delim;
+    return;
 }
 
 // Turn the CO2 on or off
