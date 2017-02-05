@@ -1,7 +1,8 @@
 #include <LiquidCrystal.h> // https://www.arduino.cc/en/Reference/LiquidCrystal
-#include <Streaming.h>        //http://arduiniana.org/libraries/streaming/
+#include <Streaming.h>     // http://arduiniana.org/libraries/streaming/
 #include <DS1302RTC.h>     // http://playground.arduino.cc/Main/DS1302RTC
 #include <TimeLib.h>       // http://playground.arduino.cc/Code/Time
+
 
 // Setup RTC pins: 
 //            CE, IO, CLK
@@ -61,14 +62,6 @@ void setup() {
   // put your setup code here, to run once:
 
   Serial.begin(115200);
-
-  // setSyncProvider() causes the Time library to synchronize with the
-  // external RTC by calling RTC.get() every five minutes by default.
-  setSyncProvider(RTC.get);
-
-  Serial << F("RTC module activated");
-  Serial << endl;
-  delay(500);
   
   pinMode(LIGHTS_PWM_PIN, OUTPUT);
   digitalWrite(LIGHTS_PWM_PIN, LOW);
@@ -77,32 +70,54 @@ void setup() {
 
   // set up the LCD's number of columns and rows:
   lcd.begin(16, 4);
-  lcd.clear();
+  lcd.setCursor(0, 0);
+  lcd.print("Starting...");
+
+  delay(1000);
   
   // Print a message to the LCD.
   // Set the cursor to column 0, line 0
   // (note: line 1 is the second row, since counting begins with 0):
-  lcd.setCursor(0, 0);
-  if (RTC.haltRTC()) {
-    lcd.print("Please set time!");
-  } else {
-    initialiseDisplay();
+  lcd.clear();
+  lcd.print("Clock Sync...");
+  Serial << F("Clock Sync...");
+  Serial << endl;
+  // setSyncProvider() causes the Time library to synchronize with the
+  // external RTC by calling RTC.get() every five minutes by default.
+  setSyncProvider(RTC.get);
+
+  if (timeStatus() == timeSet) {
+    lcd.setCursor(0,1);
+    lcd.print("Success");
+    Serial << F("Success");
+    Serial << endl;
     INITIALISED_SUCCESS = true;
+  } else {
+    Serial << F("Failed!");
+    Serial << endl;
+    lcd.setCursor(0,1);
+    lcd.print("Failed");
   }
+  delay(2000);
+  lcd.clear();
 }
 
 void loop() {
   // put your main code here, to run repeatedly:
-  setTime();
+  readTimeFromSerial();
   
   if (INITIALISED_SUCCESS) {
     updateDisplay();
     handleCo2();
     handleLights();
+  } else {
+    lcd.setCursor(0, 3);
+    lcd.print("Init Failed!");
   }
+  delay(1000);
 }
 
-void setTime() {
+void readTimeFromSerial() {
   static time_t tLast;
   time_t t;
   tmElements_t tm;
@@ -231,24 +246,28 @@ void handleLights() {
 
 // Prints the date & time to the display
 void updateDisplay() {
-  lcd.setCursor(6, 0);
+  lcd.setCursor(0, 0);
+  lcd.print("Date: ");
   printTwoDigits(day());
   lcd.print("/");
   printTwoDigits(month());
   lcd.print("/");
   lcd.print(year());
-
-  lcd.setCursor(6, 1);
+  
+  lcd.setCursor(0, 1);
+  lcd.print("Time: ");
   printTwoDigits(hour());
   lcd.print(":");
   printTwoDigits(minute());
   lcd.print(":");
   printTwoDigits(second());
-
-  lcd.setCursor(5, 2);
+  
+  lcd.setCursor(0, 2);
+  lcd.print("CO2: ");
   lcd.print(CO2_STATE);
-
-  lcd.setCursor(8, 3);
+  
+  lcd.setCursor(0, 3);
+  lcd.print("Lights: ");
   if (currentBrightness == 255) {
     lcd.print("ON ");
   } else if (currentBrightness == 0) {
@@ -274,17 +293,5 @@ void printBrightness(int brightness) {
   } else if (brightness < 100) {
     lcd.print(" ");
   }
-}
-
-void initialiseDisplay() {
-  lcd.clear();
-  lcd.setCursor(0, 0);
-  lcd.print("Date: ");
-  lcd.setCursor(0, 1);
-  lcd.print("Time: ");
-  lcd.setCursor(0, 2);
-  lcd.print("CO2: ");
-  lcd.setCursor(0, 3);
-  lcd.print("Lights: ");
 }
 
