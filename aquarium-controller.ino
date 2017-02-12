@@ -59,8 +59,10 @@ const long MILLIS_PER_INCREMENT = 2300; // Roughly 10 minutes
 
 // Max brightness is 255
 int currentBrightness = 0;
+unsigned long lastBrightnessInrement = 0;
 
-unsigned long previousMillis = 0;
+unsigned long lastDisplayRefresh = 0;
+const long SCREEN_REFRESH_INTERVAL = 10000;
 
 bool INITIALISED_SUCCESS = false;
 
@@ -236,7 +238,7 @@ void airOn(bool on) {
     AIR_STATE = "On ";
   } else {
     digitalWrite(AIR_PIN, LOW);
-    AIR_STATE = "Off";
+    AIR_STATE = "Off ";
   }
 }
 
@@ -255,8 +257,8 @@ void handleAir() {
 void handleLights() {
   unsigned long currentMillis = millis();
 
-  if (currentMillis - previousMillis >= MILLIS_PER_INCREMENT) {
-    previousMillis = currentMillis;
+  if (currentMillis - lastBrightnessInrement >= MILLIS_PER_INCREMENT) {
+    lastBrightnessInrement = currentMillis;
     
     int currentHour = hour();
     int currentMin = minute();
@@ -278,6 +280,13 @@ void handleLights() {
 
 // Prints the date & time to the display
 void updateDisplay() {
+  // Clear the display every so often
+  unsigned long currentMillis = millis();
+  if(currentMillis - lastDisplayRefresh > SCREEN_REFRESH_INTERVAL) {
+    lastDisplayRefresh = currentMillis;  
+    lcd.clear();
+  }
+  
   lcd.setCursor(0, 0);
   lcd.print("Date: ");
   printTwoDigits(day());
