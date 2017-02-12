@@ -33,14 +33,20 @@ DS1302RTC RTC(11, 10, 9);
 LiquidCrystal lcd(6, 12, 7, 2, 3, 4);
 
 const int LIGHTS_PWM_PIN = 5;
-const int SOLENOID_PIN = 8;
+const int CO2_PIN = 8;
+const int AIR_PIN = 13;
 
 const int CO2_ON_HOUR = 7;
 const int CO2_ON_MINUTE = 0;
 const int CO2_OFF_HOUR = 21;
 const int CO2_OFF_MINUTE = 0;
+String CO2_STATE = "Off";
 
-String CO2_STATE = "OFF";
+const int AIR_ON_HOUR = 22;
+const int AIR_ON_MINUTE = 0;
+const int AIR_OFF_HOUR = 7;
+const int AIR_OFF_MINUTE = 0;
+String AIR_STATE = "Off";
 
 const int LIGHTS_ON_HOUR = 8;
 const int LIGHTS_ON_MINUTE = 0;
@@ -65,8 +71,10 @@ void setup() {
   
   pinMode(LIGHTS_PWM_PIN, OUTPUT);
   digitalWrite(LIGHTS_PWM_PIN, LOW);
-  pinMode(SOLENOID_PIN, OUTPUT);
-  digitalWrite(SOLENOID_PIN, LOW);
+  pinMode(CO2_PIN, OUTPUT);
+  digitalWrite(CO2_PIN, LOW);
+  pinMode(AIR_PIN, OUTPUT);
+  digitalWrite(AIR_PIN, LOW);
 
   // set up the LCD's number of columns and rows:
   lcd.begin(16, 4);
@@ -109,6 +117,7 @@ void loop() {
   if (INITIALISED_SUCCESS) {
     updateDisplay();
     handleCo2();
+    handleAir();
     handleLights();
   } else {
     lcd.setCursor(0, 3);
@@ -200,11 +209,11 @@ void printI00(int val, char delim)
 // Turn the CO2 on or off
 void co2On(bool on) {
   if (on) {
-    digitalWrite(SOLENOID_PIN, HIGH);
-    CO2_STATE = "ON ";
+    digitalWrite(CO2_PIN, HIGH);
+    CO2_STATE = "On ";
   } else {
-    digitalWrite(SOLENOID_PIN, LOW);
-    CO2_STATE = "OFF";
+    digitalWrite(CO2_PIN, LOW);
+    CO2_STATE = "Off";
   }
 }
 
@@ -217,6 +226,29 @@ void handleCo2() {
       co2On(true);
     } else {
       co2On(false);
+    }
+}
+
+// Turn the air on or off
+void airOn(bool on) {
+  if (on) {
+    digitalWrite(AIR_PIN, HIGH);
+    AIR_STATE = "On ";
+  } else {
+    digitalWrite(AIR_PIN, LOW);
+    AIR_STATE = "Off";
+  }
+}
+
+void handleAir() {
+  int currentHour = hour();
+    int currentMin = minute();
+    if ((currentHour > AIR_ON_HOUR || (currentHour == AIR_ON_HOUR && currentMin >= AIR_ON_MINUTE))
+        && (currentHour < AIR_OFF_HOUR || (currentHour == AIR_OFF_HOUR && currentMin < AIR_OFF_MINUTE))
+    ) {
+      airOn(true);
+    } else {
+      airOn(false);
     }
 }
 
@@ -263,15 +295,18 @@ void updateDisplay() {
   printTwoDigits(second());
   
   lcd.setCursor(0, 2);
-  lcd.print("CO2: ");
+  lcd.print("CO2:");
   lcd.print(CO2_STATE);
+  lcd.setCursor(8, 2);
+  lcd.print("Air:");
+  lcd.print(AIR_STATE);
   
   lcd.setCursor(0, 3);
   lcd.print("Lights: ");
   if (currentBrightness == 255) {
-    lcd.print("ON ");
+    lcd.print("On ");
   } else if (currentBrightness == 0) {
-    lcd.print("OFF");
+    lcd.print("Off");
   } else {
     printBrightness(currentBrightness);
   }
