@@ -36,16 +36,11 @@ const int LIGHTS_PWM_PIN = 5;
 const int CO2_PIN = 8;
 const int AIR_PIN = 13;
 
-const int CO2_ON_HOUR = 7;
+const int CO2_ON_HOUR = 8;
 const int CO2_ON_MINUTE = 0;
-const int CO2_OFF_HOUR = 21;
+const int CO2_OFF_HOUR = 22;
 const int CO2_OFF_MINUTE = 0;
 String CO2_STATE = "Off";
-
-const int AIR_ON_HOUR = 22;
-const int AIR_ON_MINUTE = 0;
-const int AIR_OFF_HOUR = 7;
-const int AIR_OFF_MINUTE = 0;
 String AIR_STATE = "Off";
 
 const int LIGHTS_ON_HOUR = 8;
@@ -95,6 +90,7 @@ void setup() {
   // setSyncProvider() causes the Time library to synchronize with the
   // external RTC by calling RTC.get() every five minutes by default.
   setSyncProvider(RTC.get);
+  setSyncInterval(300);
 
   if (timeStatus() == timeSet) {
     lcd.setCursor(0,1);
@@ -118,8 +114,7 @@ void loop() {
   
   if (INITIALISED_SUCCESS) {
     updateDisplay();
-    handleCo2();
-    handleAir();
+    handleCo2AndAir();
     handleLights();
   } else {
     lcd.setCursor(0, 3);
@@ -219,18 +214,6 @@ void co2On(bool on) {
   }
 }
 
-void handleCo2() {
-  int currentHour = hour();
-    int currentMin = minute();
-    if ((currentHour > CO2_ON_HOUR || (currentHour == CO2_ON_HOUR && currentMin >= CO2_ON_MINUTE))
-        && (currentHour < CO2_OFF_HOUR || (currentHour == CO2_OFF_HOUR && currentMin < CO2_OFF_MINUTE))
-    ) {
-      co2On(true);
-    } else {
-      co2On(false);
-    }
-}
-
 // Turn the air on or off
 void airOn(bool on) {
   if (on) {
@@ -242,15 +225,17 @@ void airOn(bool on) {
   }
 }
 
-void handleAir() {
+void handleCo2AndAir() {
   int currentHour = hour();
     int currentMin = minute();
-    if ((currentHour > AIR_ON_HOUR || (currentHour == AIR_ON_HOUR && currentMin >= AIR_ON_MINUTE))
-        || (currentHour < AIR_OFF_HOUR || (currentHour == AIR_OFF_HOUR && currentMin < AIR_OFF_MINUTE))
+    if ((currentHour > CO2_ON_HOUR || (currentHour == CO2_ON_HOUR && currentMin >= CO2_ON_MINUTE))
+        && (currentHour < CO2_OFF_HOUR || (currentHour == CO2_OFF_HOUR && currentMin < CO2_OFF_MINUTE))
     ) {
-      airOn(true);
-    } else {
+      co2On(true);
       airOn(false);
+    } else {
+      co2On(false);
+      airOn(true);
     }
 }
 
