@@ -41,6 +41,11 @@ const int CO2_ON_MINUTE = 0;
 const int CO2_OFF_HOUR = 22;
 const int CO2_OFF_MINUTE = 0;
 String CO2_STATE = "Off";
+
+const int AIR_ON_HOUR = 11;
+const int AIR_ON_MINUTE = 0;
+const int AIR_OFF_HOUR = 13;
+const int AIR_OFF_MINUTE = 0;
 String AIR_STATE = "Off";
 
 const int LIGHTS_ON_HOUR = 8;
@@ -114,7 +119,8 @@ void loop() {
   
   if (INITIALISED_SUCCESS) {
     updateDisplay();
-    handleCo2AndAir();
+    handleCo2();
+    handleAir();
     handleLights();
   } else {
     lcd.setCursor(0, 3);
@@ -225,19 +231,30 @@ void airOn(bool on) {
   }
 }
 
-void handleCo2AndAir() {
+void handleCo2() {
   int currentHour = hour();
     int currentMin = minute();
     if ((currentHour > CO2_ON_HOUR || (currentHour == CO2_ON_HOUR && currentMin >= CO2_ON_MINUTE))
         && (currentHour < CO2_OFF_HOUR || (currentHour == CO2_OFF_HOUR && currentMin < CO2_OFF_MINUTE))
     ) {
       co2On(true);
-      airOn(false);
     } else {
       co2On(false);
-      airOn(true);
     }
 }
+
+void handleAir() {
+  int currentHour = hour();
+    int currentMin = minute();
+    if ((currentHour > AIR_ON_HOUR || (currentHour == AIR_ON_HOUR && currentMin >= AIR_ON_MINUTE))
+        && (currentHour < AIR_OFF_HOUR || (currentHour == AIR_OFF_HOUR && currentMin < AIR_OFF_MINUTE))
+    ) {
+      airOn(true);
+    } else {
+      airOn(false);
+    }
+}
+
 
 void handleLights() {
   unsigned long currentMillis = millis();
