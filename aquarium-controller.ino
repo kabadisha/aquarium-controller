@@ -1,7 +1,9 @@
+#include <Time.h>
+#include <TimeLib.h>       // https://www.pjrc.com/teensy/td_libs_Time.html
+#include <TimeAlarms.h>    // https://www.pjrc.com/teensy/td_libs_TimeAlarms.html
 #include <LiquidCrystal.h> // https://www.arduino.cc/en/Reference/LiquidCrystal
 #include <Streaming.h>     // http://arduiniana.org/libraries/streaming/
 #include <DS1302RTC.h>     // http://playground.arduino.cc/Main/DS1302RTC
-#include <TimeLib.h>       // http://playground.arduino.cc/Code/Time
 
 
 // Setup RTC pins: 
@@ -36,19 +38,19 @@ const int LIGHTS_PWM_PIN = 5;
 const int CO2_PIN = 8;
 const int AIR_PIN = 13;
 
-const int CO2_ON_HOUR = 8;
+const int CO2_ON_HOUR = 12;
 const int CO2_ON_MINUTE = 0;
 const int CO2_OFF_HOUR = 22;
 const int CO2_OFF_MINUTE = 0;
 String CO2_STATE = "Off";
 
-const int AIR_ON_HOUR = 11;
+const int AIR_ON_HOUR = 10;
 const int AIR_ON_MINUTE = 0;
-const int AIR_OFF_HOUR = 13;
+const int AIR_OFF_HOUR = 12;
 const int AIR_OFF_MINUTE = 0;
 String AIR_STATE = "Off";
 
-const int LIGHTS_ON_HOUR = 8;
+const int LIGHTS_ON_HOUR = 13;
 const int LIGHTS_ON_MINUTE = 0;
 const int LIGHTS_OFF_HOUR = 22;
 const int LIGHTS_OFF_MINUTE = 30;
@@ -57,6 +59,7 @@ const int LIGHTS_OFF_MINUTE = 30;
 // E.g a value of 2000 means 2x255 = 8.5 minutes of ramp
 const long MILLIS_PER_INCREMENT = 2300; // Roughly 10 minutes
 
+bool LIGHTS_ON = false;
 // Max brightness is 255
 int currentBrightness = 0;
 unsigned long lastBrightnessInrement = 0;
@@ -80,6 +83,23 @@ void setup() {
 
   // set up the LCD's number of columns and rows:
   lcd.begin(16, 4);
+
+  initialise();
+}
+
+void loop() {
+  // put your main code here, to run repeatedly:
+  readTimeFromSerial();
+  
+  if (INITIALISED_SUCCESS) {
+    handleLights();
+    updateDisplay();
+    delay(1000);
+  }
+}
+
+void initialise() {
+  lcd.clear();
   lcd.setCursor(0, 0);
   lcd.print("Starting...");
 
@@ -92,41 +112,55 @@ void setup() {
   lcd.print("Clock Sync...");
   Serial << F("Clock Sync...");
   Serial << endl;
+  
   // setSyncProvider() causes the Time library to synchronize with the
   // external RTC by calling RTC.get() every five minutes by default.
   setSyncProvider(RTC.get);
   setSyncInterval(300);
 
   if (timeStatus() == timeSet) {
-    lcd.setCursor(0,1);
-    lcd.print("Success");
-    Serial << F("Success");
+    lcd.clear();
+    lcd.setCursor(0,0);
+    lcd.print("Time synced");
+    Serial << F("Time synced");
     Serial << endl;
+
+    Alarm.alarmRepeat(LIGHTS_ON_HOUR,LIGHTS_ON_MINUTE,0, lightsOn);
+    Alarm.alarmRepeat(LIGHTS_OFF_HOUR,LIGHTS_OFF_MINUTE,0, lightsOff);
+
+    Alarm.alarmRepeat(AIR_ON_HOUR,AIR_ON_MINUTE,0, airOn);
+    Alarm.alarmRepeat(AIR_ON_HOUR,AIR_OFF_MINUTE,0, airOff);
+
+    Alarm.alarmRepeat(CO2_ON_HOUR,CO2_ON_MINUTE,0, co2On);
+    Alarm.alarmRepeat(CO2_ON_HOUR,CO2_OFF_MINUTE,0, co2Off);
+
+    lcd.setCursor(0,1);
+    lcd.print("Alarms set");
+    Serial << F("Alarms set");
+    Serial << endl;
+
+    initialiseCo2();
+    initialiseAir();
+    initialiseLights();
+
+    lcd.setCursor(0,3);
+    lcd.print("Initialised");
+    Serial << F("Initialised");
+    Serial << endl;
+    
     INITIALISED_SUCCESS = true;
+
+    delay(2000);
+    lcd.clear();
+    
   } else {
     Serial << F("Failed!");
     Serial << endl;
     lcd.setCursor(0,1);
     lcd.print("Failed");
-  }
-  delay(2000);
-  lcd.clear();
-}
-
-void loop() {
-  // put your main code here, to run repeatedly:
-  readTimeFromSerial();
-  
-  if (INITIALISED_SUCCESS) {
-    updateDisplay();
-    handleCo2();
-    handleAir();
-    handleLights();
-  } else {
     lcd.setCursor(0, 3);
     lcd.print("Init Failed!");
   }
-  delay(1000);
 }
 
 void readTimeFromSerial() {
@@ -159,6 +193,9 @@ void readTimeFromSerial() {
             Serial << F("RTC set to: ");
             printDateTime(t);
             Serial << endl;
+            Serial << F("Initialising...");
+            Serial << endl;
+            initialise();
           } else {
             Serial << F("RTC set failed!") << endl;
           }
@@ -209,70 +246,86 @@ void printI00(int val, char delim)
     return;
 }
 
-// Turn the CO2 on or off
-void co2On(bool on) {
-  if (on) {
-    digitalWrite(CO2_PIN, HIGH);
-    CO2_STATE = "On ";
-  } else {
-    digitalWrite(CO2_PIN, LOW);
-    CO2_STATE = "Off";
-  }
+void co2On() {
+  digitalWrite(CO2_PIN, HIGH);
+  CO2_STATE = "On ";
 }
 
-// Turn the air on or off
-void airOn(bool on) {
-  if (on) {
-    digitalWrite(AIR_PIN, HIGH);
-    AIR_STATE = "On ";
-  } else {
-    digitalWrite(AIR_PIN, LOW);
-    AIR_STATE = "Off ";
-  }
+void co2Off() {
+  digitalWrite(CO2_PIN, LOW);
+  CO2_STATE = "Off";
 }
 
-void handleCo2() {
+void airOn() {
+  digitalWrite(AIR_PIN, HIGH);
+  AIR_STATE = "On ";
+}
+
+void airOff() {
+  digitalWrite(AIR_PIN, LOW);
+  AIR_STATE = "Off ";
+}
+
+void initialiseCo2() {
   int currentHour = hour();
     int currentMin = minute();
     if ((currentHour > CO2_ON_HOUR || (currentHour == CO2_ON_HOUR && currentMin >= CO2_ON_MINUTE))
         && (currentHour < CO2_OFF_HOUR || (currentHour == CO2_OFF_HOUR && currentMin < CO2_OFF_MINUTE))
     ) {
-      co2On(true);
+      co2On();
     } else {
-      co2On(false);
+      co2Off();
     }
 }
 
-void handleAir() {
+void initialiseAir() {
   int currentHour = hour();
     int currentMin = minute();
     if ((currentHour > AIR_ON_HOUR || (currentHour == AIR_ON_HOUR && currentMin >= AIR_ON_MINUTE))
         && (currentHour < AIR_OFF_HOUR || (currentHour == AIR_OFF_HOUR && currentMin < AIR_OFF_MINUTE))
     ) {
-      airOn(true);
+      airOn();
     } else {
-      airOn(false);
+      airOff();
     }
 }
 
 
+void initialiseLights() {
+  int currentHour = hour();
+  int currentMin = minute();
+  if ((currentHour > LIGHTS_ON_HOUR || (currentHour == LIGHTS_ON_HOUR && currentMin >= LIGHTS_ON_MINUTE))
+      && (currentHour < LIGHTS_OFF_HOUR || (currentHour == LIGHTS_OFF_HOUR && currentMin < LIGHTS_OFF_MINUTE))
+  ) {
+    lightsOn();
+  } else {
+    lightsOff();
+  }
+}
+
+void lightsOn() {
+  LIGHTS_ON = true;
+}
+
+void lightsOff() {
+  LIGHTS_ON = false;
+}
+
 void handleLights() {
   unsigned long currentMillis = millis();
-
-  if (currentMillis - lastBrightnessInrement >= MILLIS_PER_INCREMENT) {
-    lastBrightnessInrement = currentMillis;
-    
-    int currentHour = hour();
-    int currentMin = minute();
-    if ((currentHour > LIGHTS_ON_HOUR || (currentHour == LIGHTS_ON_HOUR && currentMin >= LIGHTS_ON_MINUTE))
-        && (currentHour < LIGHTS_OFF_HOUR || (currentHour == LIGHTS_OFF_HOUR && currentMin < LIGHTS_OFF_MINUTE))
-    ) {
-      if (currentBrightness < 255) {
+  
+  if (LIGHTS_ON) {
+    if (currentBrightness < 255) {
+      if (currentMillis - lastBrightnessInrement >= MILLIS_PER_INCREMENT) {
+        lastBrightnessInrement = currentMillis;
         currentBrightness++;
         analogWrite(LIGHTS_PWM_PIN, currentBrightness);
       }
-    } else {
-      if (currentBrightness > 0) {
+    }
+  } else {
+    if (currentBrightness > 0) {
+      if (currentMillis - lastBrightnessInrement >= MILLIS_PER_INCREMENT) {
+        lastBrightnessInrement = currentMillis;
         currentBrightness--;
         analogWrite(LIGHTS_PWM_PIN, currentBrightness);
       }
