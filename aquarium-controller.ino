@@ -62,7 +62,6 @@ const long MILLIS_PER_INCREMENT = 2300; // Roughly 10 minutes
 bool LIGHTS_ON = false;
 // Max brightness is 255
 int currentBrightness = 0;
-unsigned long lastBrightnessInrement = 0;
 
 unsigned long lastDisplayRefresh = 0;
 const long SCREEN_REFRESH_INTERVAL = 10000;
@@ -83,22 +82,6 @@ void setup() {
 
   // set up the LCD's number of columns and rows:
   lcd.begin(16, 4);
-
-  initialise();
-}
-
-void loop() {
-  // put your main code here, to run repeatedly:
-  readTimeFromSerial();
-  
-  if (INITIALISED_SUCCESS) {
-    handleLights();
-    updateDisplay();
-    delay(1000);
-  }
-}
-
-void initialise() {
   lcd.clear();
   lcd.setCursor(0, 0);
   lcd.print("Starting...");
@@ -110,43 +93,36 @@ void initialise() {
   // (note: line 1 is the second row, since counting begins with 0):
   lcd.clear();
   lcd.print("Clock Sync...");
-  Serial << F("Clock Sync...");
-  Serial << endl;
+  Serial.println("Clock Sync...");
   
   // setSyncProvider() causes the Time library to synchronize with the
   // external RTC by calling RTC.get() every five minutes by default.
   setSyncProvider(RTC.get);
-  setSyncInterval(300);
 
   if (timeStatus() == timeSet) {
     lcd.clear();
     lcd.setCursor(0,0);
     lcd.print("Time synced");
-    Serial << F("Time synced");
-    Serial << endl;
+    Serial.println("Time synced");
 
-    Alarm.alarmRepeat(LIGHTS_ON_HOUR,LIGHTS_ON_MINUTE,0, lightsOn);
-    Alarm.alarmRepeat(LIGHTS_OFF_HOUR,LIGHTS_OFF_MINUTE,0, lightsOff);
-
-    Alarm.alarmRepeat(AIR_ON_HOUR,AIR_ON_MINUTE,0, airOn);
-    Alarm.alarmRepeat(AIR_ON_HOUR,AIR_OFF_MINUTE,0, airOff);
-
-    Alarm.alarmRepeat(CO2_ON_HOUR,CO2_ON_MINUTE,0, co2On);
-    Alarm.alarmRepeat(CO2_ON_HOUR,CO2_OFF_MINUTE,0, co2Off);
-
+    initialise();
+    
+    Alarm.alarmRepeat(LIGHTS_ON_HOUR,LIGHTS_ON_MINUTE,0,lightsOn);
+    Alarm.alarmRepeat(LIGHTS_OFF_HOUR,LIGHTS_OFF_MINUTE,0,lightsOff);
+  
+    Alarm.alarmRepeat(AIR_ON_HOUR,AIR_ON_MINUTE,0,airOn);
+    Alarm.alarmRepeat(AIR_OFF_HOUR,AIR_OFF_MINUTE,0,airOff);
+  
+    Alarm.alarmRepeat(CO2_ON_HOUR,CO2_ON_MINUTE,0,co2On);
+    Alarm.alarmRepeat(CO2_OFF_HOUR,CO2_OFF_MINUTE,0,co2Off);
+  
     lcd.setCursor(0,1);
     lcd.print("Alarms set");
-    Serial << F("Alarms set");
-    Serial << endl;
-
-    initialiseCo2();
-    initialiseAir();
-    initialiseLights();
+    Serial.println("Alarms set");
 
     lcd.setCursor(0,3);
     lcd.print("Initialised");
-    Serial << F("Initialised");
-    Serial << endl;
+    Serial.println("Initialised");
     
     INITIALISED_SUCCESS = true;
 
@@ -154,17 +130,49 @@ void initialise() {
     lcd.clear();
     
   } else {
-    Serial << F("Failed!");
-    Serial << endl;
+    Serial.println("Time Sync Failed");
     lcd.setCursor(0,1);
-    lcd.print("Failed");
+    lcd.print("Time Sync Failed");
     lcd.setCursor(0, 3);
     lcd.print("Init Failed!");
   }
 }
 
+void loop() {
+  // put your main code here, to run repeatedly:
+  Alarm.delay(500);
+  readTimeFromSerial();
+  
+  if (INITIALISED_SUCCESS) {
+    // Only write current time to serial and update lights and display every 1000ms
+    if (timeHasPassed(1000)) {
+      printDateTime(now());
+      Serial << endl;
+      handleLights();
+      updateDisplay();
+    }
+  }
+}
+
+boolean timeHasPassed(long millisDelay) {
+  static unsigned long lastMillis;
+  unsigned long currentMillis = millis();
+  
+  if (lastMillis == NULL || currentMillis >= lastMillis + millisDelay) {
+    lastMillis = currentMillis;
+    return true;
+  } else {
+    return false;
+  }
+}
+
+void initialise() {
+  initialiseCo2();
+  initialiseAir();
+  initialiseLights();
+}
+
 void readTimeFromSerial() {
-  static time_t tLast;
   time_t t;
   tmElements_t tm;
 
@@ -175,7 +183,7 @@ void readTimeFromSerial() {
       //use the convenience macros from Time.h to do the conversions.
       int y = Serial.parseInt();
       if (y >= 100 && y < 1000) {
-          Serial << F("Error: Year must be two digits or four digits!") << endl;
+          Serial.println("Error: Year must be two digits or four digits!");
       } else {
           if (y >= 1000)
               tm.Year = CalendarYrToTm(y);
@@ -193,22 +201,14 @@ void readTimeFromSerial() {
             Serial << F("RTC set to: ");
             printDateTime(t);
             Serial << endl;
-            Serial << F("Initialising...");
-            Serial << endl;
+            Serial.println("Initialising...");
             initialise();
           } else {
-            Serial << F("RTC set failed!") << endl;
+            Serial.println("RTC set failed!");
           }
           //dump any extraneous input
           while (Serial.available() > 0) Serial.read();
       }
-  }
-  
-  t = now();
-  if (t != tLast) {
-      tLast = t;
-      printDateTime(t);
-      Serial << endl;
   }
 }
 
@@ -305,27 +305,27 @@ void initialiseLights() {
 
 void lightsOn() {
   LIGHTS_ON = true;
+  Serial.println("Lights on");
 }
 
 void lightsOff() {
   LIGHTS_ON = false;
+  Serial.println("Lights off");
 }
 
 void handleLights() {
-  unsigned long currentMillis = millis();
-  
   if (LIGHTS_ON) {
+    Serial.println("Lights: On");
     if (currentBrightness < 255) {
-      if (currentMillis - lastBrightnessInrement >= MILLIS_PER_INCREMENT) {
-        lastBrightnessInrement = currentMillis;
+      if (timeHasPassed(MILLIS_PER_INCREMENT)) {
         currentBrightness++;
         analogWrite(LIGHTS_PWM_PIN, currentBrightness);
       }
     }
   } else {
+    Serial.println("Lights: Off");
     if (currentBrightness > 0) {
-      if (currentMillis - lastBrightnessInrement >= MILLIS_PER_INCREMENT) {
-        lastBrightnessInrement = currentMillis;
+      if (timeHasPassed(MILLIS_PER_INCREMENT)) {
         currentBrightness--;
         analogWrite(LIGHTS_PWM_PIN, currentBrightness);
       }
@@ -336,9 +336,7 @@ void handleLights() {
 // Prints the date & time to the display
 void updateDisplay() {
   // Clear the display every so often
-  unsigned long currentMillis = millis();
-  if(currentMillis - lastDisplayRefresh > SCREEN_REFRESH_INTERVAL) {
-    lastDisplayRefresh = currentMillis;  
+  if(timeHasPassed(SCREEN_REFRESH_INTERVAL)) {
     lcd.clear();
   }
   
