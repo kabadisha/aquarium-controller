@@ -86,7 +86,7 @@ void setup() {
 
 void loop() {
   // put your main code here, to run repeatedly:
-  Alarm.delay(2000);
+  Alarm.delay(1000);
   readTimeFromSerial();
   
   if (INITIALISED_SUCCESS) {
@@ -97,18 +97,6 @@ void loop() {
       handleLights();
       updateDisplay();
     }
-  }
-}
-
-boolean timeHasPassed(long millisDelay) {
-  static unsigned long lastMillis;
-  unsigned long currentMillis = millis();
-  
-  if (lastMillis == NULL || currentMillis >= lastMillis + millisDelay) {
-    lastMillis = currentMillis;
-    return true;
-  } else {
-    return false;
   }
 }
 
@@ -146,20 +134,8 @@ void initialise() {
     Serial.println("Time synced");
 
     delay(2000);
-
-    Alarm.alarmRepeat(LIGHTS_ON_HOUR,LIGHTS_ON_MINUTE,0,lightsOn);
-    Alarm.alarmRepeat(LIGHTS_OFF_HOUR,LIGHTS_OFF_MINUTE,0,lightsOff);
-  
-    Alarm.alarmRepeat(AIR_ON_HOUR,AIR_ON_MINUTE,0,airOn);
-    Alarm.alarmRepeat(AIR_OFF_HOUR,AIR_OFF_MINUTE,0,airOff);
-  
-    Alarm.alarmRepeat(CO2_ON_HOUR,CO2_ON_MINUTE,0,co2On);
-    Alarm.alarmRepeat(CO2_OFF_HOUR,CO2_OFF_MINUTE,0,co2Off);
-
-    lcd.setCursor(0,1);
-    lcd.print("Alarms set");
-    Serial.println("Alarms set");
-  
+    
+    initialiseAlarms();
     initialiseCo2();
     initialiseAir();
     initialiseLights();
@@ -180,6 +156,48 @@ void initialise() {
     lcd.setCursor(0, 2);
     lcd.print("Init Failed!");
   }
+}
+
+boolean timeHasPassed(long millisDelay) {
+  static unsigned long lastMillis;
+  unsigned long currentMillis = millis();
+  
+  if (lastMillis == NULL || currentMillis >= lastMillis + millisDelay) {
+    lastMillis = currentMillis;
+    return true;
+  } else {
+    return false;
+  }
+}
+
+void initialiseAlarms() {
+  static AlarmID_t lightsOnAlarm;
+  static AlarmID_t lightsOffAlarm;
+  static AlarmID_t airOnAlarm;
+  static AlarmID_t airOffAlarm;
+  static AlarmID_t co2OnAlarm;
+  static AlarmID_t co2OffAlarm;
+
+  // We have to release the existing alarms and recreate them every time we set the time for some reason.
+  Alarm.free(lightsOnAlarm);
+  Alarm.free(lightsOffAlarm);
+  Alarm.free(airOnAlarm);
+  Alarm.free(airOffAlarm);
+  Alarm.free(co2OnAlarm);
+  Alarm.free(co2OffAlarm);
+  
+  lightsOnAlarm = Alarm.alarmRepeat(LIGHTS_ON_HOUR,LIGHTS_ON_MINUTE,0,lightsOn);
+  lightsOffAlarm = Alarm.alarmRepeat(LIGHTS_OFF_HOUR,LIGHTS_OFF_MINUTE,0,lightsOff);
+
+  airOnAlarm = Alarm.alarmRepeat(AIR_ON_HOUR,AIR_ON_MINUTE,0,airOn);
+  airOffAlarm = Alarm.alarmRepeat(AIR_OFF_HOUR,AIR_OFF_MINUTE,0,airOff);
+
+  co2OnAlarm = Alarm.alarmRepeat(CO2_ON_HOUR,CO2_ON_MINUTE,0,co2On);
+  co2OffAlarm = Alarm.alarmRepeat(CO2_OFF_HOUR,CO2_OFF_MINUTE,0,co2Off);
+
+  lcd.setCursor(0,1);
+  lcd.print("Alarms set");
+  Serial.println("Alarms set");
 }
 
 void readTimeFromSerial() {
