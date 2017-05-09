@@ -80,73 +80,13 @@ void setup() {
 
   // set up the LCD's number of columns and rows:
   lcd.begin(16, 4);
-  lcd.clear();
-  lcd.setCursor(0, 0);
-  lcd.print("Starting...");
 
-  delay(1000);
-  
-  // Print a message to the LCD.
-  // Set the cursor to column 0, line 0
-  // (note: line 1 is the second row, since counting begins with 0):
-  lcd.clear();
-  lcd.print("Clock Sync...");
-  Serial.println("Clock Sync...");
-
-  if (RTC.haltRTC()) {
-    Serial.println("The DS1302 is stopped.  Please set time");
-  }
-  if (!RTC.writeEN()) {
-    Serial.println("The DS1302 is write protected. This normal.");
-  }
-  
-  // setSyncProvider() causes the Time library to synchronize with the
-  // external RTC by calling RTC.get() every five minutes by default.
-  setSyncProvider(RTC.get);
-  setSyncInterval(300);
-
-  if (timeStatus() == timeSet) {
-    lcd.clear();
-    lcd.setCursor(0,0);
-    lcd.print("Time synced");
-    Serial.println("Time synced");
-
-    initialise();
-    
-    Alarm.alarmRepeat(LIGHTS_ON_HOUR,LIGHTS_ON_MINUTE,0,lightsOn);
-    Alarm.alarmRepeat(LIGHTS_OFF_HOUR,LIGHTS_OFF_MINUTE,0,lightsOff);
-  
-    Alarm.alarmRepeat(AIR_ON_HOUR,AIR_ON_MINUTE,0,airOn);
-    Alarm.alarmRepeat(AIR_OFF_HOUR,AIR_OFF_MINUTE,0,airOff);
-  
-    Alarm.alarmRepeat(CO2_ON_HOUR,CO2_ON_MINUTE,0,co2On);
-    Alarm.alarmRepeat(CO2_OFF_HOUR,CO2_OFF_MINUTE,0,co2Off);
-  
-    lcd.setCursor(0,1);
-    lcd.print("Alarms set");
-    Serial.println("Alarms set");
-
-    lcd.setCursor(0,3);
-    lcd.print("Initialised");
-    Serial.println("Initialised");
-    
-    INITIALISED_SUCCESS = true;
-
-    delay(2000);
-    lcd.clear();
-    
-  } else {
-    Serial.println("Time Sync Failed");
-    lcd.setCursor(0,1);
-    lcd.print("Time Sync Failed");
-    lcd.setCursor(0, 3);
-    lcd.print("Init Failed!");
-  }
+  initialise();
 }
 
 void loop() {
   // put your main code here, to run repeatedly:
-  Alarm.delay(500);
+  Alarm.delay(2000);
   readTimeFromSerial();
   
   if (INITIALISED_SUCCESS) {
@@ -173,9 +113,73 @@ boolean timeHasPassed(long millisDelay) {
 }
 
 void initialise() {
-  initialiseCo2();
-  initialiseAir();
-  initialiseLights();
+  lcd.clear();
+  lcd.setCursor(0, 0);
+  lcd.print("Starting...");
+
+  if (RTC.haltRTC()) {
+    Serial.println("The DS1302 is stopped.  Please set time");
+  }
+  if (!RTC.writeEN()) {
+    Serial.println("The DS1302 is write protected. This normal.");
+  }
+
+  delay(1000);
+  
+  // Print a message to the LCD.
+  // Set the cursor to column 0, line 0
+  // (note: line 1 is the second row, since counting begins with 0):
+  lcd.clear();
+  lcd.setCursor(0,0);
+  lcd.print("Clock Sync...");
+  Serial.println("Clock Sync...");
+  
+  // setSyncProvider() causes the Time library to synchronize with the
+  // external RTC by calling RTC.get() every five minutes by default.
+  setSyncProvider(RTC.get);
+  setSyncInterval(120);
+
+  if (timeStatus() == timeSet) {
+    lcd.clear();
+    lcd.setCursor(0,0);
+    lcd.print("Time synced");
+    Serial.println("Time synced");
+
+    delay(2000);
+
+    Alarm.alarmRepeat(LIGHTS_ON_HOUR,LIGHTS_ON_MINUTE,0,lightsOn);
+    Alarm.alarmRepeat(LIGHTS_OFF_HOUR,LIGHTS_OFF_MINUTE,0,lightsOff);
+  
+    Alarm.alarmRepeat(AIR_ON_HOUR,AIR_ON_MINUTE,0,airOn);
+    Alarm.alarmRepeat(AIR_OFF_HOUR,AIR_OFF_MINUTE,0,airOff);
+  
+    Alarm.alarmRepeat(CO2_ON_HOUR,CO2_ON_MINUTE,0,co2On);
+    Alarm.alarmRepeat(CO2_OFF_HOUR,CO2_OFF_MINUTE,0,co2Off);
+
+    lcd.setCursor(0,1);
+    lcd.print("Alarms set");
+    Serial.println("Alarms set");
+  
+    initialiseCo2();
+    initialiseAir();
+    initialiseLights();
+  
+    lcd.setCursor(0,2);
+    lcd.print("Initialised");
+    Serial.println("Initialised");
+    
+    INITIALISED_SUCCESS = true;
+  
+    delay(2000);
+    lcd.clear();
+  } else {
+    INITIALISED_SUCCESS = false;
+    Serial.println("Time Sync Failed");
+    lcd.setCursor(0,1);
+    lcd.print("Time Sync Failed");
+    lcd.setCursor(0, 2);
+    lcd.print("Init Failed!");
+  }
 }
 
 void readTimeFromSerial() {
@@ -207,8 +211,14 @@ void readTimeFromSerial() {
         Serial << F("RTC set to: ");
         printDateTime(t);
         Serial << endl;
+        if (timeStatus() == timeSet) {
+          Serial.println("Time successfully synchronised!");
+          initialise();
+        } else {
+          Serial.println("Time not synchronised!");
+        }
       } else {
-        Serial << F("RTC set failed!") << endl;
+        Serial.println("RTC set failed!");
       }
       //dump any extraneous input
       while (Serial.available() > 0) Serial.read();
