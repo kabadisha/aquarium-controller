@@ -63,7 +63,6 @@ bool LIGHTS_ON = false;
 // Max brightness is 255
 int currentBrightness = 0;
 
-unsigned long lastDisplayRefresh = 0;
 const long SCREEN_REFRESH_INTERVAL = 10000;
 
 bool INITIALISED_SUCCESS = false;
