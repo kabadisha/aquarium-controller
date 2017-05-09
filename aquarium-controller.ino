@@ -1,10 +1,9 @@
-#include <Time.h>
-#include <TimeLib.h>       // https://www.pjrc.com/teensy/td_libs_Time.html
+#include <Time.h>          // https://www.pjrc.com/teensy/td_libs_Time.html
+#include <TimeLib.h>
 #include <TimeAlarms.h>    // https://www.pjrc.com/teensy/td_libs_TimeAlarms.html
 #include <LiquidCrystal.h> // https://www.arduino.cc/en/Reference/LiquidCrystal
 #include <Streaming.h>     // http://arduiniana.org/libraries/streaming/
 #include <DS1302RTC.h>     // http://playground.arduino.cc/Main/DS1302RTC
-
 
 // Setup RTC pins: 
 //            CE, IO, CLK
@@ -93,10 +92,18 @@ void setup() {
   lcd.clear();
   lcd.print("Clock Sync...");
   Serial.println("Clock Sync...");
+
+  if (RTC.haltRTC()) {
+    Serial.println("The DS1302 is stopped.  Please set time");
+  }
+  if (!RTC.writeEN()) {
+    Serial.println("The DS1302 is write protected. This normal.");
+  }
   
   // setSyncProvider() causes the Time library to synchronize with the
   // external RTC by calling RTC.get() every five minutes by default.
   setSyncProvider(RTC.get);
+  setSyncInterval(300);
 
   if (timeStatus() == timeSet) {
     lcd.clear();
@@ -172,42 +179,40 @@ void initialise() {
 }
 
 void readTimeFromSerial() {
-  time_t t;
-  tmElements_t tm;
-
   //check for input to set the RTC, minimum length is 12, i.e. yy,m,d,h,m,s
   if (Serial.available() >= 12) {
-      //note that the tmElements_t Year member is an offset from 1970,
-      //but the RTC wants the last two digits of the calendar year.
-      //use the convenience macros from Time.h to do the conversions.
-      int y = Serial.parseInt();
-      if (y >= 100 && y < 1000) {
-          Serial.println("Error: Year must be two digits or four digits!");
-      } else {
-          if (y >= 1000)
-              tm.Year = CalendarYrToTm(y);
-          else    //(y < 100)
-              tm.Year = y2kYearToTm(y);
-          tm.Month = Serial.parseInt();
-          tm.Day = Serial.parseInt();
-          tm.Hour = Serial.parseInt();
-          tm.Minute = Serial.parseInt();
-          tm.Second = Serial.parseInt();
-          t = makeTime(tm);
-          //use the time_t value to ensure correct weekday is set
-          if(RTC.set(t) == 0) { // Success
-            setTime(t);
-            Serial << F("RTC set to: ");
-            printDateTime(t);
-            Serial << endl;
-            Serial.println("Initialising...");
-            initialise();
-          } else {
-            Serial.println("RTC set failed!");
-          }
-          //dump any extraneous input
-          while (Serial.available() > 0) Serial.read();
+    time_t t;
+    tmElements_t tm;
+    //note that the tmElements_t Year member is an offset from 1970,
+    //but the RTC wants the last two digits of the calendar year.
+    //use the convenience macros from Time.h to do the conversions.
+    int y = Serial.parseInt();
+    if (y >= 100 && y < 1000) {
+      Serial << F("Error: Year must be two digits or four digits!") << endl;
+    } else {
+      if (y >= 1000) {
+        tm.Year = CalendarYrToTm(y);
+      } else {   //(y < 100)
+        tm.Year = y2kYearToTm(y);
       }
+      tm.Month = Serial.parseInt();
+      tm.Day = Serial.parseInt();
+      tm.Hour = Serial.parseInt();
+      tm.Minute = Serial.parseInt();
+      tm.Second = Serial.parseInt();
+      t = makeTime(tm);
+      //use the time_t value to ensure correct weekday is set
+      if(RTC.set(t) == 0) { // Success
+        setTime(t);
+        Serial << F("RTC set to: ");
+        printDateTime(t);
+        Serial << endl;
+      } else {
+        Serial << F("RTC set failed!") << endl;
+      }
+      //dump any extraneous input
+      while (Serial.available() > 0) Serial.read();
+    }
   }
 }
 
