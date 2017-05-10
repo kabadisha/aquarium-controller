@@ -55,8 +55,8 @@ const int LIGHTS_OFF_HOUR = 22;
 const int LIGHTS_OFF_MINUTE = 30;
 
 // This is the number of milliseconds between each increment of brightness when ramping
-// E.g a value of 2000 means 2x255 = 8.5 minutes of ramp
-const long MILLIS_PER_INCREMENT = 2300; // Roughly 10 minutes
+// E.g a value of 7000 means 7x255 is roughly 30 minutes of ramp
+const long MILLIS_PER_INCREMENT = 7000; // Roughly 30 minutes
 
 bool LIGHTS_ON = false;
 // Max brightness is 255
@@ -159,7 +159,8 @@ void initialise() {
   }
 }
 
-boolean millisHavePassedSince(unsigned long millisDelay, unsigned long since) {
+// We prefix since with ampersand in order to use a pointer, rather than clone that parameter.
+boolean millisHavePassedSince(unsigned long millisDelay, unsigned long &since) {
   unsigned long currentMillis = millis();
   
   if (since == NULL || currentMillis >= since + millisDelay) {
@@ -350,7 +351,9 @@ void lightsOff() {
 void handleLights() {
   static unsigned long since;
   if (LIGHTS_ON) {
-    Serial.println("Lights: On");
+    Serial.print(F("Lights: On. Brightness: "));
+    Serial.print(currentBrightness);
+    Serial.print('\n');
     if (currentBrightness < 255) {
       if (millisHavePassedSince(MILLIS_PER_INCREMENT, since)) {
         currentBrightness++;
@@ -358,7 +361,9 @@ void handleLights() {
       }
     }
   } else {
-    Serial.println("Lights: Off");
+    Serial.print(F("Lights: Off. Brightness: "));
+    Serial.print(currentBrightness);
+    Serial.print('\n');
     if (currentBrightness > 0) {
       if (millisHavePassedSince(MILLIS_PER_INCREMENT, since)) {
         currentBrightness--;
