@@ -91,7 +91,8 @@ void loop() {
   
   if (INITIALISED_SUCCESS) {
     // Only write current time to serial and update lights and display every 1000ms
-    if (timeHasPassed(1000)) {
+    static unsigned long since;
+    if (millisHavePassedSince(1000, since)) {
       printDateTime(now());
       Serial << endl;
       handleLights();
@@ -158,12 +159,11 @@ void initialise() {
   }
 }
 
-boolean timeHasPassed(long millisDelay) {
-  static unsigned long lastMillis;
+boolean millisHavePassedSince(unsigned long millisDelay, unsigned long since) {
   unsigned long currentMillis = millis();
   
-  if (lastMillis == NULL || currentMillis >= lastMillis + millisDelay) {
-    lastMillis = currentMillis;
+  if (since == NULL || currentMillis >= since + millisDelay) {
+    since = currentMillis;
     return true;
   } else {
     return false;
@@ -194,6 +194,9 @@ void initialiseAlarms() {
 
   co2OnAlarm = Alarm.alarmRepeat(CO2_ON_HOUR,CO2_ON_MINUTE,0,co2On);
   co2OffAlarm = Alarm.alarmRepeat(CO2_OFF_HOUR,CO2_OFF_MINUTE,0,co2Off);
+
+  // N.B by default the Alarms library only supports up to 6 alarms. 
+  // This limit can be extended by editing the library (apparently).
 
   lcd.setCursor(0,1);
   lcd.print("Alarms set");
@@ -322,7 +325,6 @@ void initialiseAir() {
     }
 }
 
-
 void initialiseLights() {
   int currentHour = hour();
   int currentMin = minute();
@@ -346,10 +348,11 @@ void lightsOff() {
 }
 
 void handleLights() {
+  static unsigned long since;
   if (LIGHTS_ON) {
     Serial.println("Lights: On");
     if (currentBrightness < 255) {
-      if (timeHasPassed(MILLIS_PER_INCREMENT)) {
+      if (millisHavePassedSince(MILLIS_PER_INCREMENT, since)) {
         currentBrightness++;
         analogWrite(LIGHTS_PWM_PIN, currentBrightness);
       }
@@ -357,7 +360,7 @@ void handleLights() {
   } else {
     Serial.println("Lights: Off");
     if (currentBrightness > 0) {
-      if (timeHasPassed(MILLIS_PER_INCREMENT)) {
+      if (millisHavePassedSince(MILLIS_PER_INCREMENT, since)) {
         currentBrightness--;
         analogWrite(LIGHTS_PWM_PIN, currentBrightness);
       }
@@ -368,7 +371,8 @@ void handleLights() {
 // Prints the date & time to the display
 void updateDisplay() {
   // Clear the display every so often
-  if(timeHasPassed(SCREEN_REFRESH_INTERVAL)) {
+  static unsigned long since;
+  if(millisHavePassedSince(SCREEN_REFRESH_INTERVAL, since)) {
     lcd.clear();
   }
   
