@@ -332,10 +332,13 @@ void initialiseLights() {
   if ((currentHour > LIGHTS_ON_HOUR || (currentHour == LIGHTS_ON_HOUR && currentMin >= LIGHTS_ON_MINUTE))
       && (currentHour < LIGHTS_OFF_HOUR || (currentHour == LIGHTS_OFF_HOUR && currentMin < LIGHTS_OFF_MINUTE))
   ) {
+    currentBrightness = 255;
     lightsOn();
   } else {
+    currentBrightness = 0;
     lightsOff();
   }
+  analogWrite(LIGHTS_PWM_PIN, currentBrightness);
 }
 
 void lightsOn() {
