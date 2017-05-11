@@ -163,7 +163,7 @@ void initialise() {
   }
 }
 
-// We prefix since with ampersand in order to use a pointer, rather than clone that parameter.
+// We prefix 'since' with ampersand in order to use a pointer, rather than clone that parameter.
 boolean millisHavePassedSince(unsigned long millisDelay, unsigned long &since) {
   unsigned long currentMillis = millis();
   
