@@ -104,28 +104,28 @@ void loop() {
 void initialise() {
   lcd.clear();
   lcd.setCursor(0, 0);
-  lcd.print("Starting...");
+  lcd.print(F("Starting..."));
 
   if (!RTC.writeEN()) {
-    Serial.println("The DS1302 is write protected. This normal.");
+    Serial.println(F("The DS1302 is write protected. This normal."));
   }
 
   delay(1000);
 
   if (RTC.haltRTC()) {
     lcd.setCursor(0, 1);
-    lcd.print("RTC Stopped");
+    lcd.print(F("RTC Stopped"));
     lcd.setCursor(0, 2);
-    lcd.print("Init Failed!");
-    Serial.println("The DS1302 is stopped.  Please set time");
+    lcd.print(F("Init Failed!"));
+    Serial.println(F("The DS1302 is stopped.  Please set time"));
   } else {
     // Print a message to the LCD.
     // Set the cursor to column 0, line 0
     // (note: line 1 is the second row, since counting begins with 0):
     lcd.clear();
     lcd.setCursor(0, 0);
-    lcd.print("Clock Sync...");
-    Serial.println("Clock Sync...");
+    lcd.print(F("Clock Sync..."));
+    Serial.println(F("Clock Sync..."));
 
     // setSyncProvider() causes the Time library to synchronize with the
     // external RTC by calling RTC.get() every five minutes by default.
@@ -135,8 +135,8 @@ void initialise() {
     if (timeStatus() == timeSet) {
       lcd.clear();
       lcd.setCursor(0, 0);
-      lcd.print("Time synced");
-      Serial.println("Time synced");
+      lcd.print(F("Time synced"));
+      Serial.println(F("Time synced"));
 
       delay(2000);
 
@@ -146,19 +146,19 @@ void initialise() {
       initialiseLights();
 
       lcd.setCursor(0, 2);
-      lcd.print("Initialised");
-      Serial.println("Initialised");
+      lcd.print(F("Initialised"));
+      Serial.println(F("Initialised"));
 
       INITIALISED_SUCCESS = true;
 
       delay(2000);
       lcd.clear();
     } else {
-      Serial.println("Time Sync Failed");
+      Serial.println(F("Time Sync Failed"));
       lcd.setCursor(0, 1);
-      lcd.print("Time Sync Failed");
+      lcd.print(F("Time Sync Failed"));
       lcd.setCursor(0, 2);
-      lcd.print("Init Failed!");
+      lcd.print(F("Init Failed!"));
     }
   }
 }
@@ -238,13 +238,13 @@ void readTimeFromSerial() {
         printDateTime(t);
         Serial << endl;
         if (timeStatus() == timeSet) {
-          Serial.println("Time successfully synchronised!");
+          Serial.println(F("Time successfully synchronised!"));
           initialise();
         } else {
-          Serial.println("Time not synchronised!");
+          Serial.println(F("Time not synchronised!"));
         }
       } else {
-        Serial.println("RTC set failed!");
+        Serial.println(F("RTC set failed!"));
       }
       //dump any extraneous input
       while (Serial.available() > 0) Serial.read();
@@ -347,12 +347,12 @@ void initialiseLights() {
 
 void lightsOn() {
   LIGHTS_ON = true;
-  Serial.println("Lights on");
+  Serial.println(F("Lights on"));
 }
 
 void lightsOff() {
   LIGHTS_ON = false;
-  Serial.println("Lights off");
+  Serial.println(F("Lights off"));
 }
 
 void handleLights() {
@@ -389,34 +389,34 @@ void updateDisplay() {
   }
 
   lcd.setCursor(0, 0);
-  lcd.print("Date: ");
+  lcd.print(F("Date: "));
   printTwoDigits(day());
-  lcd.print("/");
+  lcd.print(F("/"));
   printTwoDigits(month());
-  lcd.print("/");
+  lcd.print(F("/"));
   lcd.print(year());
 
   lcd.setCursor(0, 1);
-  lcd.print("Time: ");
+  lcd.print(F("Time: "));
   printTwoDigits(hour());
-  lcd.print(":");
+  lcd.print(F(":"));
   printTwoDigits(minute());
-  lcd.print(":");
+  lcd.print(F(":"));
   printTwoDigits(second());
 
   lcd.setCursor(0, 2);
-  lcd.print("CO2:");
+  lcd.print(F("CO2:"));
   lcd.print(CO2_STATE);
   lcd.setCursor(8, 2);
-  lcd.print("Air:");
+  lcd.print(F("Air:"));
   lcd.print(AIR_STATE);
 
   lcd.setCursor(0, 3);
-  lcd.print("Lights: ");
+  lcd.print(F("Lights: "));
   if (currentBrightness == 255) {
-    lcd.print("On ");
+    lcd.print(F("On "));
   } else if (currentBrightness == 0) {
-    lcd.print("Off");
+    lcd.print(F("Off"));
   } else {
     printBrightness(currentBrightness);
   }
@@ -425,7 +425,7 @@ void updateDisplay() {
 // Prefixes single digits with 0
 void printTwoDigits(int number) {
   if (number >= 0 && number < 10) {
-    lcd.print("0");
+    lcd.print(F("0"));
   }
   lcd.print(number);
 }
@@ -434,9 +434,9 @@ void printTwoDigits(int number) {
 void printBrightness(int brightness) {
   lcd.print(brightness);
   if (brightness >= 0 && brightness < 10) {
-    lcd.print("  ");
+    lcd.print(F("  "));
   } else if (brightness < 100) {
-    lcd.print(" ");
+    lcd.print(F(" "));
   }
 }
 
