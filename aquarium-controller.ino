@@ -5,7 +5,7 @@
 #include <Streaming.h>     // http://arduiniana.org/libraries/streaming/
 #include <DS1302RTC.h>     // http://playground.arduino.cc/Main/DS1302RTC
 
-// Setup RTC pins: 
+// Setup RTC pins:
 //            CE, IO, CLK
 DS1302RTC RTC(11, 10, 9);
 
@@ -70,7 +70,7 @@ void setup() {
   // put your setup code here, to run once:
 
   Serial.begin(115200);
-  
+
   pinMode(LIGHTS_PWM_PIN, OUTPUT);
   digitalWrite(LIGHTS_PWM_PIN, LOW);
   pinMode(CO2_PIN, OUTPUT);
@@ -88,7 +88,7 @@ void loop() {
   // put your main code here, to run repeatedly:
   Alarm.delay(1000);
   readTimeFromSerial();
-  
+
   if (INITIALISED_SUCCESS) {
     // Only write current time to serial and update lights and display every 1000ms
     static unsigned long since;
@@ -113,7 +113,7 @@ void initialise() {
   delay(1000);
 
   if (RTC.haltRTC()) {
-    lcd.setCursor(0,1);
+    lcd.setCursor(0, 1);
     lcd.print("RTC Stopped");
     lcd.setCursor(0, 2);
     lcd.print("Init Failed!");
@@ -123,39 +123,39 @@ void initialise() {
     // Set the cursor to column 0, line 0
     // (note: line 1 is the second row, since counting begins with 0):
     lcd.clear();
-    lcd.setCursor(0,0);
+    lcd.setCursor(0, 0);
     lcd.print("Clock Sync...");
     Serial.println("Clock Sync...");
-    
+
     // setSyncProvider() causes the Time library to synchronize with the
     // external RTC by calling RTC.get() every five minutes by default.
     setSyncProvider(RTC.get);
     setSyncInterval(120);
-  
+
     if (timeStatus() == timeSet) {
       lcd.clear();
-      lcd.setCursor(0,0);
+      lcd.setCursor(0, 0);
       lcd.print("Time synced");
       Serial.println("Time synced");
-  
+
       delay(2000);
-      
+
       initialiseAlarms();
       initialiseCo2();
       initialiseAir();
       initialiseLights();
-    
-      lcd.setCursor(0,2);
+
+      lcd.setCursor(0, 2);
       lcd.print("Initialised");
       Serial.println("Initialised");
-      
+
       INITIALISED_SUCCESS = true;
-    
+
       delay(2000);
       lcd.clear();
     } else {
       Serial.println("Time Sync Failed");
-      lcd.setCursor(0,1);
+      lcd.setCursor(0, 1);
       lcd.print("Time Sync Failed");
       lcd.setCursor(0, 2);
       lcd.print("Init Failed!");
@@ -166,7 +166,7 @@ void initialise() {
 // We prefix 'since' with ampersand in order to use a pointer, rather than clone that parameter.
 boolean millisHavePassedSince(unsigned long millisDelay, unsigned long &since) {
   unsigned long currentMillis = millis();
-  
+
   if (since == NULL || currentMillis >= since + millisDelay) {
     since = currentMillis;
     return true;
@@ -190,20 +190,20 @@ void initialiseAlarms() {
   Alarm.free(airOffAlarm);
   Alarm.free(co2OnAlarm);
   Alarm.free(co2OffAlarm);
-  
-  lightsOnAlarm = Alarm.alarmRepeat(LIGHTS_ON_HOUR,LIGHTS_ON_MINUTE,0,lightsOn);
-  lightsOffAlarm = Alarm.alarmRepeat(LIGHTS_OFF_HOUR,LIGHTS_OFF_MINUTE,0,lightsOff);
 
-  airOnAlarm = Alarm.alarmRepeat(AIR_ON_HOUR,AIR_ON_MINUTE,0,airOn);
-  airOffAlarm = Alarm.alarmRepeat(AIR_OFF_HOUR,AIR_OFF_MINUTE,0,airOff);
+  lightsOnAlarm = Alarm.alarmRepeat(LIGHTS_ON_HOUR, LIGHTS_ON_MINUTE, 0, lightsOn);
+  lightsOffAlarm = Alarm.alarmRepeat(LIGHTS_OFF_HOUR, LIGHTS_OFF_MINUTE, 0, lightsOff);
 
-  co2OnAlarm = Alarm.alarmRepeat(CO2_ON_HOUR,CO2_ON_MINUTE,0,co2On);
-  co2OffAlarm = Alarm.alarmRepeat(CO2_OFF_HOUR,CO2_OFF_MINUTE,0,co2Off);
+  airOnAlarm = Alarm.alarmRepeat(AIR_ON_HOUR, AIR_ON_MINUTE, 0, airOn);
+  airOffAlarm = Alarm.alarmRepeat(AIR_OFF_HOUR, AIR_OFF_MINUTE, 0, airOff);
 
-  // N.B by default the Alarms library only supports up to 6 alarms. 
+  co2OnAlarm = Alarm.alarmRepeat(CO2_ON_HOUR, CO2_ON_MINUTE, 0, co2On);
+  co2OffAlarm = Alarm.alarmRepeat(CO2_OFF_HOUR, CO2_OFF_MINUTE, 0, co2Off);
+
+  // N.B by default the Alarms library only supports up to 6 alarms.
   // This limit can be extended by editing the library (apparently).
 
-  lcd.setCursor(0,1);
+  lcd.setCursor(0, 1);
   lcd.print("Alarms set");
   Serial.println("Alarms set");
 }
@@ -232,7 +232,7 @@ void readTimeFromSerial() {
       tm.Second = Serial.parseInt();
       t = makeTime(tm);
       //use the time_t value to ensure correct weekday is set
-      if(RTC.set(t) == 0) { // Success
+      if (RTC.set(t) == 0) { // Success
         setTime(t);
         Serial << F("RTC set to: ");
         printDateTime(t);
@@ -255,24 +255,24 @@ void readTimeFromSerial() {
 //print date and time to Serial
 void printDateTime(time_t t)
 {
-    printDate(t);
-    Serial << ' ';
-    printTime(t);
+  printDate(t);
+  Serial << ' ';
+  printTime(t);
 }
 
 //print time to Serial
 void printTime(time_t t)
 {
-    printI00(hour(t), ':');
-    printI00(minute(t), ':');
-    printI00(second(t), ' ');
+  printI00(hour(t), ':');
+  printI00(minute(t), ':');
+  printI00(second(t), ' ');
 }
 
 //print date to Serial
 void printDate(time_t t)
 {
-    printI00(day(t), 0);
-    Serial << monthShortStr(month(t)) << _DEC(year(t));
+  printI00(day(t), 0);
+  Serial << monthShortStr(month(t)) << _DEC(year(t));
 }
 
 //Print an integer in "00" format (with leading zero),
@@ -280,10 +280,10 @@ void printDate(time_t t)
 //Input value assumed to be between 0 and 99.
 void printI00(int val, char delim)
 {
-    if (val < 10) Serial << '0';
-    Serial << _DEC(val);
-    if (delim > 0) Serial << delim;
-    return;
+  if (val < 10) Serial << '0';
+  Serial << _DEC(val);
+  if (delim > 0) Serial << delim;
+  return;
 }
 
 void co2On() {
@@ -308,26 +308,26 @@ void airOff() {
 
 void initialiseCo2() {
   int currentHour = hour();
-    int currentMin = minute();
-    if ((currentHour > CO2_ON_HOUR || (currentHour == CO2_ON_HOUR && currentMin >= CO2_ON_MINUTE))
-        && (currentHour < CO2_OFF_HOUR || (currentHour == CO2_OFF_HOUR && currentMin < CO2_OFF_MINUTE))
-    ) {
-      co2On();
-    } else {
-      co2Off();
-    }
+  int currentMin = minute();
+  if ((currentHour > CO2_ON_HOUR || (currentHour == CO2_ON_HOUR && currentMin >= CO2_ON_MINUTE))
+      && (currentHour < CO2_OFF_HOUR || (currentHour == CO2_OFF_HOUR && currentMin < CO2_OFF_MINUTE))
+     ) {
+    co2On();
+  } else {
+    co2Off();
+  }
 }
 
 void initialiseAir() {
   int currentHour = hour();
-    int currentMin = minute();
-    if ((currentHour > AIR_ON_HOUR || (currentHour == AIR_ON_HOUR && currentMin >= AIR_ON_MINUTE))
-        && (currentHour < AIR_OFF_HOUR || (currentHour == AIR_OFF_HOUR && currentMin < AIR_OFF_MINUTE))
-    ) {
-      airOn();
-    } else {
-      airOff();
-    }
+  int currentMin = minute();
+  if ((currentHour > AIR_ON_HOUR || (currentHour == AIR_ON_HOUR && currentMin >= AIR_ON_MINUTE))
+      && (currentHour < AIR_OFF_HOUR || (currentHour == AIR_OFF_HOUR && currentMin < AIR_OFF_MINUTE))
+     ) {
+    airOn();
+  } else {
+    airOff();
+  }
 }
 
 void initialiseLights() {
@@ -335,7 +335,7 @@ void initialiseLights() {
   int currentMin = minute();
   if ((currentHour > LIGHTS_ON_HOUR || (currentHour == LIGHTS_ON_HOUR && currentMin >= LIGHTS_ON_MINUTE))
       && (currentHour < LIGHTS_OFF_HOUR || (currentHour == LIGHTS_OFF_HOUR && currentMin < LIGHTS_OFF_MINUTE))
-  ) {
+     ) {
     currentBrightness = 255;
     lightsOn();
   } else {
@@ -384,10 +384,10 @@ void handleLights() {
 void updateDisplay() {
   // Clear the display every so often
   static unsigned long since;
-  if(millisHavePassedSince(SCREEN_REFRESH_INTERVAL, since)) {
+  if (millisHavePassedSince(SCREEN_REFRESH_INTERVAL, since)) {
     lcd.clear();
   }
-  
+
   lcd.setCursor(0, 0);
   lcd.print("Date: ");
   printTwoDigits(day());
@@ -395,7 +395,7 @@ void updateDisplay() {
   printTwoDigits(month());
   lcd.print("/");
   lcd.print(year());
-  
+
   lcd.setCursor(0, 1);
   lcd.print("Time: ");
   printTwoDigits(hour());
@@ -403,14 +403,14 @@ void updateDisplay() {
   printTwoDigits(minute());
   lcd.print(":");
   printTwoDigits(second());
-  
+
   lcd.setCursor(0, 2);
   lcd.print("CO2:");
   lcd.print(CO2_STATE);
   lcd.setCursor(8, 2);
   lcd.print("Air:");
   lcd.print(AIR_STATE);
-  
+
   lcd.setCursor(0, 3);
   lcd.print("Lights: ");
   if (currentBrightness == 255) {
