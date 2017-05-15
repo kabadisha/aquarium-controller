@@ -110,7 +110,7 @@ void initialise() {
     Serial.println(F("The DS1302 is write protected. This normal."));
   }
 
-  delay(1000);
+  Alarm.delay(1000);
 
   if (RTC.haltRTC()) {
     lcd.setCursor(0, 1);
@@ -138,7 +138,7 @@ void initialise() {
       lcd.print(F("Time synced"));
       Serial.println(F("Time synced"));
 
-      delay(2000);
+      Alarm.delay(1000);
 
       initialiseAlarms();
       initialiseCo2();
@@ -151,7 +151,7 @@ void initialise() {
 
       INITIALISED_SUCCESS = true;
 
-      delay(2000);
+      Alarm.delay(1000);
       lcd.clear();
     } else {
       Serial.println(F("Time Sync Failed"));
@@ -176,32 +176,24 @@ boolean millisHavePassedSince(unsigned long millisDelay, unsigned long &since) {
 }
 
 void initialiseAlarms() {
-  static AlarmID_t lightsOnAlarm;
-  static AlarmID_t lightsOffAlarm;
-  static AlarmID_t airOnAlarm;
-  static AlarmID_t airOffAlarm;
-  static AlarmID_t co2OnAlarm;
-  static AlarmID_t co2OffAlarm;
-
-  // We have to release the existing alarms and recreate them every time we set the time for some reason.
-  Alarm.free(lightsOnAlarm);
-  Alarm.free(lightsOffAlarm);
-  Alarm.free(airOnAlarm);
-  Alarm.free(airOffAlarm);
-  Alarm.free(co2OnAlarm);
-  Alarm.free(co2OffAlarm);
-
-  lightsOnAlarm = Alarm.alarmRepeat(LIGHTS_ON_HOUR, LIGHTS_ON_MINUTE, 0, lightsOn);
-  lightsOffAlarm = Alarm.alarmRepeat(LIGHTS_OFF_HOUR, LIGHTS_OFF_MINUTE, 0, lightsOff);
-
-  airOnAlarm = Alarm.alarmRepeat(AIR_ON_HOUR, AIR_ON_MINUTE, 0, airOn);
-  airOffAlarm = Alarm.alarmRepeat(AIR_OFF_HOUR, AIR_OFF_MINUTE, 0, airOff);
-
-  co2OnAlarm = Alarm.alarmRepeat(CO2_ON_HOUR, CO2_ON_MINUTE, 0, co2On);
-  co2OffAlarm = Alarm.alarmRepeat(CO2_OFF_HOUR, CO2_OFF_MINUTE, 0, co2Off);
 
   // N.B by default the Alarms library only supports up to 6 alarms.
   // This limit can be extended by editing the library (apparently).
+  
+  static AlarmID_t lightsOnAlarm = Alarm.alarmRepeat(LIGHTS_ON_HOUR, LIGHTS_ON_MINUTE, 0, lightsOn);
+  static AlarmID_t lightsOffAlarm = Alarm.alarmRepeat(LIGHTS_OFF_HOUR, LIGHTS_OFF_MINUTE, 0, lightsOff);
+  static AlarmID_t airOnAlarm = Alarm.alarmRepeat(AIR_ON_HOUR, AIR_ON_MINUTE, 0, airOn);
+  static AlarmID_t airOffAlarm = Alarm.alarmRepeat(AIR_OFF_HOUR, AIR_OFF_MINUTE, 0, airOff);
+  static AlarmID_t co2OnAlarm = Alarm.alarmRepeat(CO2_ON_HOUR, CO2_ON_MINUTE, 0, co2On);
+  static AlarmID_t co2OffAlarm = Alarm.alarmRepeat(CO2_OFF_HOUR, CO2_OFF_MINUTE, 0, co2Off);
+
+  // We have to re-enable the existing alarms every time we set the time for some reason.
+  Alarm.enable(lightsOnAlarm);
+  Alarm.enable(lightsOffAlarm);
+  Alarm.enable(airOnAlarm);
+  Alarm.enable(airOffAlarm);
+  Alarm.enable(co2OnAlarm);
+  Alarm.enable(co2OffAlarm);
 
   lcd.setCursor(0, 1);
   lcd.print("Alarms set");
