@@ -86,7 +86,7 @@ void setup() {
 
 void loop() {
   // put your main code here, to run repeatedly:
-  Alarm.delay(1000);
+  Alarm.delay(0);
   readTimeFromSerial();
 
   if (INITIALISED_SUCCESS) {
