@@ -38,21 +38,21 @@ const int CO2_PIN = 8;
 const int AIR_PIN = 13;
 
 const int CO2_ON_HOUR = 12;
-const int CO2_ON_MINUTE = 0;
+const int CO2_ON_MINUTE = 1;
 const int CO2_OFF_HOUR = 22;
-const int CO2_OFF_MINUTE = 0;
+const int CO2_OFF_MINUTE = 1;
 String CO2_STATE = "Off";
 
 const int AIR_ON_HOUR = 10;
-const int AIR_ON_MINUTE = 0;
+const int AIR_ON_MINUTE = 1;
 const int AIR_OFF_HOUR = 12;
-const int AIR_OFF_MINUTE = 0;
+const int AIR_OFF_MINUTE = 1;
 String AIR_STATE = "Off";
 
 const int LIGHTS_ON_HOUR = 13;
-const int LIGHTS_ON_MINUTE = 0;
+const int LIGHTS_ON_MINUTE = 1;
 const int LIGHTS_OFF_HOUR = 22;
-const int LIGHTS_OFF_MINUTE = 30;
+const int LIGHTS_OFF_MINUTE = 31;
 
 // This is the number of milliseconds between each increment of brightness when ramping
 // E.g a value of 7000 means 7x255 is roughly 30 minutes of ramp
@@ -130,7 +130,7 @@ void initialise() {
     // setSyncProvider() causes the Time library to synchronize with the
     // external RTC by calling RTC.get() every five minutes by default.
     setSyncProvider(RTC.get);
-    setSyncInterval(120);
+    setSyncInterval(300);
 
     if (timeStatus() == timeSet) {
       lcd.clear();
@@ -138,7 +138,7 @@ void initialise() {
       lcd.print(F("Time synced"));
       Serial.println(F("Time synced"));
 
-      Alarm.delay(1000);
+      delay(1000);
 
       initialiseAlarms();
       initialiseCo2();
@@ -151,7 +151,7 @@ void initialise() {
 
       INITIALISED_SUCCESS = true;
 
-      Alarm.delay(1000);
+      delay(1000);
       lcd.clear();
     } else {
       Serial.println(F("Time Sync Failed"));
